@@ -615,7 +615,7 @@
 
       <section id="models">
         <h2>Models</h2>
-        <p class="hint">Select the ones to write. Set each model’s max output tokens and whether it should get <code>noImageSupport</code> — vision on Fable, off on DeepSeek, not one switch for both.</p>
+        <p class="hint">Select the ones to write. Set tokens, vision, and <code>enableThinking</code> per model. Thinking-on is what makes Droid stream <code>reasoning_content</code> during the turn instead of dumping it after.</p>
         <div class="toolbar">
           <div class="grow">
             <input id="modelFilter" type="search" placeholder="Filter by name" />
@@ -629,6 +629,8 @@
           <button class="btn-ghost" id="applyTokensBtn" type="button">Apply tokens to selected</button>
           <button class="btn-ghost" id="markNoImageBtn" type="button">Mark selected: no images</button>
           <button class="btn-ghost" id="clearNoImageBtn" type="button">Mark selected: images ok</button>
+          <button class="btn-ghost" id="markThinkBtn" type="button">Mark selected: stream thinking</button>
+          <button class="btn-ghost" id="clearThinkBtn" type="button">Mark selected: no thinking</button>
         </div>
         <div class="table-wrap" id="modelList">
           <div class="empty">Fetch first. The list shows up here.</div>
@@ -785,6 +787,7 @@
       limits: {},
       tokens: {},
       noImage: new Set(),
+      enableThinking: new Set(),
     };
 
     const $ = (id) => document.getElementById(id);
@@ -929,6 +932,7 @@
         const cap = tokenFor(model);
         if (cap) entry.maxOutputTokens = cap;
         if (state.noImage.has(model)) entry.noImageSupport = true;
+        if (state.enableThinking.has(model)) entry.enableThinking = true;
         return entry;
       });
     }
@@ -1079,7 +1083,7 @@
       }
 
       const table = document.createElement("table");
-      table.innerHTML = "<thead><tr><th></th><th>Model</th><th>maxOutputTokens</th><th>Vision</th></tr></thead>";
+      table.innerHTML = "<thead><tr><th></th><th>Model</th><th>maxOutputTokens</th><th>Vision</th><th>Thinking</th></tr></thead>";
       const body = document.createElement("tbody");
       for (const model of visible) {
         const tr = document.createElement("tr");
@@ -1126,7 +1130,20 @@
         visLabel.append(vis, document.createTextNode(" noImageSupport"));
         tdVis.appendChild(visLabel);
 
-        tr.append(tdCheck, tdId, tdTok, tdVis);
+        const tdThink = document.createElement("td");
+        tdThink.className = "vision";
+        const thinkLabel = document.createElement("label");
+        const think = document.createElement("input");
+        think.type = "checkbox";
+        think.checked = state.enableThinking.has(model);
+        think.addEventListener("change", () => {
+          if (think.checked) state.enableThinking.add(model);
+          else state.enableThinking.delete(model);
+        });
+        thinkLabel.append(think, document.createTextNode(" enableThinking"));
+        tdThink.appendChild(thinkLabel);
+
+        tr.append(tdCheck, tdId, tdTok, tdVis, tdThink);
         body.appendChild(tr);
       }
       table.appendChild(body);
@@ -1151,6 +1168,7 @@
         if (state.tokens[id] == null && state.limits[id]) {
           state.tokens[id] = String(state.limits[id]);
         }
+        state.enableThinking.add(id);
       }
       state.models.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
       renderModels();
@@ -1216,6 +1234,7 @@
         state.limits = records.limits || {};
         state.tokens = {};
         state.noImage = new Set();
+        state.enableThinking = new Set();
         addModels(records.ids);
         setStatus($("fetchStatus"), "ok", records.ids.length + " models from " + modelsUrlForBase(baseUrl));
         $("models").scrollIntoView({ block: "start" });
@@ -1388,6 +1407,16 @@
     $("clearNoImageBtn").addEventListener("click", () => {
       const targets = state.selected.size ? [...state.selected] : [];
       targets.forEach((id) => state.noImage.delete(id));
+      renderModels();
+    });
+    $("markThinkBtn").addEventListener("click", () => {
+      const targets = state.selected.size ? [...state.selected] : [];
+      targets.forEach((id) => state.enableThinking.add(id));
+      renderModels();
+    });
+    $("clearThinkBtn").addEventListener("click", () => {
+      const targets = state.selected.size ? [...state.selected] : [];
+      targets.forEach((id) => state.enableThinking.delete(id));
       renderModels();
     });
     $("addManualBtn").addEventListener("click", () => {
