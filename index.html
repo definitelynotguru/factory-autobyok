@@ -644,8 +644,47 @@
 
       <section id="extra">
         <h2>Extra settings</h2>
-        <p class="hint">Theme, default model, favorites, mission models. Plugins and trusted folders stay out of this form.</p>
+        <p class="hint">Theme, session defaults, favorites, mission models. Plugins and trusted folders stay out of this form.</p>
         <div class="grid">
+          <div class="field span">
+            <div class="label">Droid prefs</div>
+            <div class="checks">
+              <label><input id="cloudSessionSync" type="checkbox" /> cloudSessionSync</label>
+              <label><input id="includeCoAuthoredByDroid" type="checkbox" /> includeCoAuthoredByDroid</label>
+              <label><input id="showThinkingInMainView" type="checkbox" checked /> showThinkingInMainView</label>
+              <label><input id="showTokenUsageIndicator" type="checkbox" checked /> showTokenUsageIndicator</label>
+              <label><input id="nerdFont" type="checkbox" checked /> nerdFont</label>
+            </div>
+          </div>
+          <div class="field">
+            <label for="logoAnimation">logoAnimation</label>
+            <select id="logoAnimation">
+              <option value="off" selected>off</option>
+              <option value="once">once</option>
+              <option value="always">always</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="interactionMode">Session interaction</label>
+            <select id="interactionMode">
+              <option value="auto" selected>auto</option>
+              <option value="spec">spec</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="autonomyLevel">Session autonomy</label>
+            <select id="autonomyLevel">
+              <option value="off">off</option>
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high" selected>high</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="autonomyMode">Session autonomyMode</label>
+            <input id="autonomyMode" type="text" value="auto-high" />
+            <p class="help">Legacy key Droid still reads. Defaults to auto-high.</p>
+          </div>
           <div class="field">
             <label for="theme">Theme</label>
             <input id="theme" type="text" list="themeList" placeholder="factory-dark" />
@@ -1214,15 +1253,27 @@
       const theme = $("theme").value.trim();
       if (theme) settings.theme = theme;
 
+      settings.cloudSessionSync = $("cloudSessionSync").checked;
+      settings.includeCoAuthoredByDroid = $("includeCoAuthoredByDroid").checked;
+      settings.showThinkingInMainView = $("showThinkingInMainView").checked;
+      settings.showTokenUsageIndicator = $("showTokenUsageIndicator").checked;
+      settings.nerdFont = $("nerdFont").checked;
+      settings.logoAnimation = $("logoAnimation").value || "off";
+
+      const session = { ...(settings.sessionDefaultSettings || {}) };
+      session.interactionMode = $("interactionMode").value || "auto";
+      session.autonomyLevel = $("autonomyLevel").value || "high";
+      const autonomyMode = $("autonomyMode").value.trim();
+      if (autonomyMode) session.autonomyMode = autonomyMode;
+
       const def = $("defaultModel").value;
       const defEffort = $("defaultEffort").value;
       if (def) {
         settings.model = def;
-        settings.sessionDefaultSettings = { ...(settings.sessionDefaultSettings || {}), model: def };
-        if (defEffort) settings.sessionDefaultSettings.reasoningEffort = defEffort;
-      } else if (defEffort) {
-        settings.sessionDefaultSettings = { ...(settings.sessionDefaultSettings || {}), reasoningEffort: defEffort };
+        session.model = def;
       }
+      if (defEffort) session.reasoningEffort = defEffort;
+      settings.sessionDefaultSettings = session;
 
       const seen = new Set();
       const favs = [...state.favorites, ...extraFavoriteIds()].filter((id) => {
@@ -1365,6 +1416,13 @@
       el.addEventListener("change", () => { $("envField").hidden = keyMode() !== "env"; });
     });
     $("theme").addEventListener("input", () => markStep(2, !!$("theme").value.trim()));
+    function syncAutonomyMode() {
+      const mode = $("interactionMode").value;
+      const level = $("autonomyLevel").value;
+      $("autonomyMode").value = mode === "auto" && level === "off" ? "off" : mode + "-" + level;
+    }
+    $("interactionMode").addEventListener("change", syncAutonomyMode);
+    $("autonomyLevel").addEventListener("change", syncAutonomyMode);
 
     fillEffort($("defaultEffort"));
     fillEffort($("orchEffort"));
