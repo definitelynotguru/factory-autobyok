@@ -432,8 +432,15 @@
       white-space: nowrap;
     }
 
-    td.tokens input {
+    td.tokens input,
+    td.budget input {
       width: 118px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+
+    td.effort select {
+      width: 108px;
       padding: 6px 8px;
       font-size: 12px;
     }
@@ -647,6 +654,8 @@
         <div class="toolbar">
           <input id="bulkTokens" type="number" min="1" placeholder="e.g. 131072" style="max-width:160px" />
           <button class="btn-ghost" id="applyTokensBtn" type="button">Apply tokens to selected</button>
+          <select id="bulkEffort" style="max-width:120px"></select>
+          <button class="btn-ghost" id="applyEffortBtn" type="button">Apply reasoning to selected</button>
           <button class="btn-ghost" id="markNoImageBtn" type="button">Mark selected: no images</button>
           <button class="btn-ghost" id="clearNoImageBtn" type="button">Mark selected: images ok</button>
           <button class="btn-ghost" id="markThinkBtn" type="button">Mark selected: stream thinking</button>
@@ -709,7 +718,7 @@
           </div>
           <div class="field">
             <label for="theme">Theme</label>
-            <input id="theme" type="text" list="themeList" placeholder="factory-dark" />
+            <input id="theme" type="text" list="themeList" value="factory-dark" placeholder="factory-dark" />
             <datalist id="themeList">
               <option value="factory-dark"></option>
               <option value="factory-light"></option>
@@ -756,6 +765,13 @@
           <div class="field">
             <label for="validEffort">Validation reasoning</label>
             <select id="validEffort"></select>
+          </div>
+          <div class="field span">
+            <div class="label">Mission skips</div>
+            <div class="checks">
+              <label><input id="skipScrutiny" type="checkbox" checked /> skipScrutiny</label>
+              <label><input id="skipUserTesting" type="checkbox" checked /> skipUserTesting</label>
+            </div>
           </div>
         </div>
         <details>
@@ -806,6 +822,8 @@
       favorites: new Set(),
       limits: {},
       tokens: {},
+      effort: {},
+      thinkBudget: {},
       noImage: new Set(),
       enableThinking: new Set(),
     };
@@ -952,7 +970,19 @@
         const cap = tokenFor(model);
         if (cap) entry.maxOutputTokens = cap;
         if (state.noImage.has(model)) entry.noImageSupport = true;
-        if (state.enableThinking.has(model)) entry.enableThinking = true;
+        const effort = state.effort[model] || "";
+        if (effort) entry.reasoningEffort = effort;
+        if (state.enableThinking.has(model)) {
+          entry.enableThinking = true;
+          const extra = { thinking: { type: "enabled" } };
+          const budget = positiveInt(state.thinkBudget[model]);
+          if (budget) extra.thinking.budget_tokens = budget;
+          if (effort) {
+            extra.reasoning_effort = effort;
+            extra.effort = effort;
+          }
+          entry.extraArgs = extra;
+        }
         return entry;
       });
     }
@@ -1103,7 +1133,7 @@
       }
 
       const table = document.createElement("table");
-      table.innerHTML = "<thead><tr><th></th><th>Model</th><th>maxOutputTokens</th><th>Vision</th><th>Thinking</th></tr></thead>";
+      table.innerHTML = "<thead><tr><th></th><th>Model</th><th>maxOutputTokens</th><th>reasoning</th><th>think budget</th><th>Vision</th><th>Thinking</th></tr></thead>";
       const body = document.createElement("tbody");
       for (const model of visible) {
         const tr = document.createElement("tr");
@@ -1137,6 +1167,33 @@
         });
         tdTok.appendChild(tok);
 
+        const tdEffort = document.createElement("td");
+        tdEffort.className = "effort";
+        const effortSel = document.createElement("select");
+        for (const value of EFFORTS) {
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = value || "unset";
+          effortSel.appendChild(opt);
+        }
+        effortSel.value = state.effort[model] || "";
+        effortSel.addEventListener("change", () => {
+          state.effort[model] = effortSel.value;
+        });
+        tdEffort.appendChild(effortSel);
+
+        const tdBudget = document.createElement("td");
+        tdBudget.className = "budget";
+        const budget = document.createElement("input");
+        budget.type = "number";
+        budget.min = "1";
+        budget.placeholder = "optional";
+        budget.value = state.thinkBudget[model] || "";
+        budget.addEventListener("input", () => {
+          state.thinkBudget[model] = budget.value;
+        });
+        tdBudget.appendChild(budget);
+
         const tdVis = document.createElement("td");
         tdVis.className = "vision";
         const visLabel = document.createElement("label");
@@ -1163,7 +1220,7 @@
         thinkLabel.append(think, document.createTextNode(" enableThinking"));
         tdThink.appendChild(thinkLabel);
 
-        tr.append(tdCheck, tdId, tdTok, tdVis, tdThink);
+        tr.append(tdCheck, tdId, tdTok, tdEffort, tdBudget, tdVis, tdThink);
         body.appendChild(tr);
       }
       table.appendChild(body);
@@ -1253,6 +1310,8 @@
         state.selected = new Set();
         state.limits = records.limits || {};
         state.tokens = {};
+        state.effort = {};
+        state.thinkBudget = {};
         state.noImage = new Set();
         state.enableThinking = new Set();
         addModels(records.ids);
@@ -1330,13 +1389,13 @@
       const validEffort = $("validEffort").value;
       if (orch) settings.missionOrchestratorModel = orch;
       if (orchEffort) settings.missionOrchestratorReasoningEffort = orchEffort;
-      if (worker || workerEffort || valid || validEffort) {
-        settings.missionModelSettings = { ...(settings.missionModelSettings || {}) };
-        if (worker) settings.missionModelSettings.workerModel = worker;
-        if (workerEffort) settings.missionModelSettings.workerReasoningEffort = workerEffort;
-        if (valid) settings.missionModelSettings.validationWorkerModel = valid;
-        if (validEffort) settings.missionModelSettings.validationWorkerReasoningEffort = validEffort;
-      }
+      settings.missionModelSettings = { ...(settings.missionModelSettings || {}) };
+      if (worker) settings.missionModelSettings.workerModel = worker;
+      if (workerEffort) settings.missionModelSettings.workerReasoningEffort = workerEffort;
+      if (valid) settings.missionModelSettings.validationWorkerModel = valid;
+      if (validEffort) settings.missionModelSettings.validationWorkerReasoningEffort = validEffort;
+      settings.missionModelSettings.skipScrutiny = $("skipScrutiny").checked;
+      settings.missionModelSettings.skipUserTesting = $("skipUserTesting").checked;
       return { settings, stats: merged };
     }
 
@@ -1409,6 +1468,12 @@
       state.selected.clear();
       renderModels();
     });
+    $("applyEffortBtn").addEventListener("click", () => {
+      const effort = $("bulkEffort").value;
+      const targets = state.selected.size ? [...state.selected] : state.models;
+      for (const id of targets) state.effort[id] = effort;
+      renderModels();
+    });
     $("applyTokensBtn").addEventListener("click", () => {
       const n = positiveInt($("bulkTokens").value);
       if (!n) {
@@ -1477,6 +1542,8 @@
     fillEffort($("orchEffort"));
     fillEffort($("workerEffort"));
     fillEffort($("validEffort"));
+    fillEffort($("bulkEffort"));
+    $("defaultEffort").value = "medium";
     refreshExtraSelects();
 
     (function pinChrome() {
