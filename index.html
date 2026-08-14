@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Custom Models (BYOK) · Factory</title>
+  <style>
+    @font-face {
+      font-family: Geist;
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/Geist-Regular.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Geist;
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+      src: url("https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/Geist-Medium.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: Geist;
+      font-style: normal;
+      font-weight: 600;
+      font-display: swap;
+      src: url("https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/Geist-SemiBold.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Geist Mono";
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/GeistMono-Regular.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Geist Mono";
+      font-style: normal;
+      font-weight: 500;
+      font-display: swap;
+      src: url("https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/GeistMono-Medium.woff2") format("woff2");
+    }
+    :root {
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --ink: #101010;
+      --muted: #6a6562;
+      --faint: #8a847f;
+      --line: #e4dfdb;
+      --line-2: #d4cec9;
+      --orange: #ee6018;
+      --peach: #f4e8e1;
+      --code: #ededed;
+      --btn: #101010;
+      --btn-ink: #f5f5f5;
+      --ok: #2f6b3a;
+      --bad: #b42318;
+      --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+      --radius: 4px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Geist", "Geist Fallback", sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--ink); }
+    code, .mono { font-family: "Geist Mono", ui-monospace, monospace; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      height: 56px;
+      padding: 0 28px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      font-size: 13px;
+    }
+
+    .brand img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .topbar nav {
+      display: flex;
+      align-items: stretch;
+      gap: 22px;
+      height: 100%;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .topbar nav a,
+    .topbar nav span {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      text-decoration: none;
+      color: inherit;
+      border-bottom: 2px solid transparent;
+    }
+
+    .topbar nav [data-on] {
+      color: var(--ink);
+      border-bottom-color: var(--orange);
+    }
+
+    .topbar .end {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: "Geist Mono", ui-monospace, monospace;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      min-height: calc(100dvh - 56px);
+    }
+
+    .rail {
+      padding: 28px 18px 48px 0;
+      border-right: 1px solid var(--line);
+    }
+
+    .rail ol {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .rail a {
+      display: block;
+      padding: 8px 12px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 14px;
+      border-radius: var(--radius);
+    }
+
+    .rail a[data-on="1"] {
+      background: #eceae8;
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .rail a b {
+      font-family: "Geist Mono", ui-monospace, monospace;
+      font-weight: 500;
+      font-size: 11px;
+      color: var(--orange);
+      margin-right: 8px;
+    }
+
+    .content { padding: 36px 0 96px 40px; }
+
+    .crumb {
+      margin: 0 0 10px;
+      color: var(--faint);
+      font-size: 13px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(32px, 4vw, 42px);
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+    }
+
+    .lede {
+      margin: 0 0 36px;
+      color: var(--muted);
+      max-width: 58ch;
+    }
+
+    section {
+      padding-top: 8px;
+      margin-bottom: 48px;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+
+    .hint {
+      margin: 0 0 20px;
+      color: var(--muted);
+      max-width: 68ch;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 16px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.span { grid-column: 1 / -1; }
+    .field[hidden] { display: none; }
+
+    label, .label { font-size: 13px; font-weight: 500; }
+
+    .help { font-size: 12px; color: var(--faint); }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    input[type="search"],
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line-2);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: var(--radius);
+      padding: 9px 11px;
+      font: inherit;
+      font-size: 14px;
+    }
+
+    input[type="number"] { font-family: "Geist Mono", ui-monospace, monospace; }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      font-family: "Geist Mono", ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="number"]:focus,
+    input[type="search"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: 2px solid color-mix(in srgb, var(--orange) 70%, white);
+      outline-offset: 1px;
+    }
+
+    input[type="radio"],
+    input[type="checkbox"] {
+      outline: none;
+      accent-color: var(--ink);
+    }
+
+    .providers { display: grid; gap: 8px; }
+
+    .choice {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+    }
+
+    .choice:has(input:checked) {
+      background: #eceae8;
+    }
+
+    .choice small { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
+
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 16px;
+    }
+
+    button { appearance: none; border: 0; font: inherit; cursor: pointer; }
+
+    .btn {
+      background: var(--btn);
+      color: var(--btn-ink);
+      border-radius: var(--radius);
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: transform 140ms var(--ease-out);
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line-2);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-size: 14px;
+      transition: transform 140ms var(--ease-out);
+    }
+
+    .btn-ghost:active { transform: scale(0.97); }
+
+    .status { font-size: 13px; color: var(--muted); }
+    .status[data-kind="ok"] { color: var(--ok); }
+    .status[data-kind="bad"] { color: var(--bad); }
+
+    .note {
+      border-left: 2px solid var(--line-2);
+      padding: 12px 14px;
+      margin: 16px 0 0;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .note strong {
+      display: block;
+      color: var(--ink);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .toolbar .grow { flex: 1 1 200px; }
+
+    .count {
+      font-family: "Geist Mono", ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: auto;
+      max-height: min(560px, 62dvh);
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #eceae8;
+      text-align: left;
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    td.model-id {
+      font-family: "Geist Mono", ui-monospace, monospace;
+      font-size: 12px;
+      max-width: 420px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    td.tokens input {
+      width: 118px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+
+    td.vision {
+      white-space: nowrap;
+      color: var(--muted);
+    }
+
+    td.vision label {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-weight: 400;
+      cursor: pointer;
+    }
+
+    .empty { padding: 28px 14px; color: var(--faint); }
+
+    details { margin-top: 16px; }
+    summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+
+    .checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      margin-top: 8px;
+    }
+
+    .checks label {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .code {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .code-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: #eceae8;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    .code-bar span { font-family: "Geist Mono", ui-monospace, monospace; }
+
+    .code-actions { display: flex; gap: 6px; }
+
+    pre {
+      margin: 0;
+      max-height: min(640px, 70dvh);
+      overflow: auto;
+      padding: 14px 16px;
+      font-family: "Geist Mono", ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #fafafa;
+    }
+
+    .ticket-wrap[hidden] { display: none; }
+
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 5;
+      background: var(--ink);
+      color: var(--bg);
+      padding: 9px 12px;
+      font-size: 13px;
+      border-radius: var(--radius);
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+    }
+
+    .toast[data-on="1"] {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; width: min(1180px, calc(100% - 24px)); }
+      .rail { display: none; }
+      .content { padding: 24px 0 80px; }
+      .grid { grid-template-columns: 1fr; }
+      .topbar { padding: 0 16px; gap: 14px; }
+      .topbar nav { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#connect">
+      <img src="Factory.jpg" alt="" width="18" height="18" />
+      FACTORY
+    </a>
+    <nav>
+      <span data-on>Auto BYOK</span>
+      <a href="https://docs.factory.ai/model-independence/byok" target="_blank" rel="noreferrer">Documentation</a>
+    </nav>
+    <div class="end">~/.factory/settings.json</div>
+  </header>
+
+  <div class="shell">
+    <aside class="rail">
+      <ol id="steps">
+        <li><a href="#connect" data-on="1"><b>01</b>Connect</a></li>
+        <li><a href="#models"><b>02</b>Models</a></li>
+        <li><a href="#extra"><b>03</b>Settings</a></li>
+        <li><a href="#file"><b>04</b>settings.json</a></li>
+      </ol>
+    </aside>
+
+    <div class="content">
+      <p class="crumb">Model Independence &gt; Custom Models (BYOK)</p>
+      <h1>Custom Models (BYOK)</h1>
+      <p class="lede">Point Droid at your own endpoint, pick the models you want, and copy a settings.json into <code>~/.factory</code>.</p>
+
+      <section id="connect">
+        <h2>Connect</h2>
+        <p class="hint">Base URL and key are enough. Fetch reads <code>/models</code> when the endpoint exposes it.</p>
+        <div class="grid">
+          <div class="field span">
+            <label for="baseUrl">Base URL</label>
+            <input id="baseUrl" type="text" spellcheck="false" placeholder="https://openrouter.ai/api/v1" autocomplete="off" />
+            <p class="help">Local hosts like localhost:11434 get /v1 appended if it's missing.</p>
+          </div>
+          <div class="field">
+            <label for="apiKey">API key</label>
+            <input id="apiKey" type="password" spellcheck="false" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="nickname">Display prefix</label>
+            <input id="nickname" type="text" placeholder="OpenRouter" />
+            <p class="help">Shown as “Prefix / model-id”.</p>
+          </div>
+          <div class="field span">
+            <div class="label">Provider</div>
+            <div class="providers">
+              <label class="choice">
+                <input type="radio" name="provider" value="generic-chat-completion-api" checked />
+                <span>generic-chat-completion-api<small>OpenRouter, Ollama, vLLM, LM Studio, most proxies</small></span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="provider" value="openai" />
+                <span>openai<small>Official OpenAI Responses API</small></span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="provider" value="anthropic" />
+                <span>anthropic<small>Official Anthropic Messages API</small></span>
+              </label>
+            </div>
+          </div>
+          <div class="field span">
+            <div class="label">API key in the file</div>
+            <div class="checks">
+              <label><input type="radio" name="keyMode" value="raw" checked /> Store the key as-is</label>
+              <label><input type="radio" name="keyMode" value="env" /> Store ${ENV_VAR} instead</label>
+            </div>
+          </div>
+          <div class="field" id="envField" hidden>
+            <label for="envName">Environment variable</label>
+            <input id="envName" type="text" placeholder="OPENROUTER_API_KEY" />
+          </div>
+        </div>
+        <div class="row-actions">
+          <button class="btn" id="fetchBtn" type="button">Fetch models</button>
+          <span class="status" id="fetchStatus" aria-live="polite"></span>
+        </div>
+        <div class="note">
+          <strong>NOTE</strong>
+          Keys stay in this tab. They are not sent anywhere except the base URL you type, via the local /models proxy.
+        </div>
+        <details id="pasteDetails">
+          <summary>No /models, CORS block, or I already have the JSON</summary>
+          <p class="help" style="margin:10px 0">Paste an OpenAI-style model list, or add ids below.</p>
+          <textarea id="pasteModels" placeholder='{"data":[{"id":"model-a"},{"id":"model-b"}]}'></textarea>
+          <div class="row-actions">
+            <button class="btn-ghost" id="importPasteBtn" type="button">Import pasted list</button>
+          </div>
+        </details>
+      </section>
+
+      <section id="models">
+        <h2>Models</h2>
+        <p class="hint">Select the ones to write. Set each model’s max output tokens and whether it should get <code>noImageSupport</code> — vision on Fable, off on DeepSeek, not one switch for both.</p>
+        <div class="toolbar">
+          <div class="grow">
+            <input id="modelFilter" type="search" placeholder="Filter by name" />
+          </div>
+          <button class="btn-ghost" id="selectAllBtn" type="button">Select all</button>
+          <button class="btn-ghost" id="selectNoneBtn" type="button">None</button>
+          <span class="count" id="modelCount">0 selected</span>
+        </div>
+        <div class="toolbar">
+          <input id="bulkTokens" type="number" min="1" placeholder="e.g. 131072" style="max-width:160px" />
+          <button class="btn-ghost" id="applyTokensBtn" type="button">Apply tokens to selected</button>
+          <button class="btn-ghost" id="markNoImageBtn" type="button">Mark selected: no images</button>
+          <button class="btn-ghost" id="clearNoImageBtn" type="button">Mark selected: images ok</button>
+        </div>
+        <div class="table-wrap" id="modelList">
+          <div class="empty">Fetch first. The list shows up here.</div>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label for="manualModel">Add a model id manually</label>
+          <div class="row-actions">
+            <input id="manualModel" type="text" placeholder="provider/model-name" />
+            <button class="btn-ghost" id="addManualBtn" type="button">Add</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="extra">
+        <h2>Extra settings</h2>
+        <p class="hint">Theme, default model, favorites, mission models. Plugins and trusted folders stay out of this form.</p>
+        <div class="grid">
+          <div class="field">
+            <label for="theme">Theme</label>
+            <input id="theme" type="text" list="themeList" placeholder="factory-dark" />
+            <datalist id="themeList">
+              <option value="factory-dark"></option>
+              <option value="factory-light"></option>
+            </datalist>
+            <p class="help">Any id from Droid’s /themes command.</p>
+          </div>
+          <div class="field">
+            <label for="defaultModel">Default model</label>
+            <select id="defaultModel"></select>
+          </div>
+          <div class="field">
+            <label for="defaultEffort">Default reasoning</label>
+            <select id="defaultEffort"></select>
+          </div>
+          <div class="field">
+            <label for="extraFavorites">Extra favorite ids</label>
+            <input id="extraFavorites" type="text" placeholder="claude-opus-4-7, kimi-k2.6" />
+            <p class="help">Factory-managed ids, comma separated.</p>
+          </div>
+          <div class="field span">
+            <div class="label">Favorite selected custom models</div>
+            <div class="checks" id="favoriteChecks"></div>
+          </div>
+          <div class="field">
+            <label for="orchModel">Mission orchestrator</label>
+            <select id="orchModel"></select>
+          </div>
+          <div class="field">
+            <label for="orchEffort">Orchestrator reasoning</label>
+            <select id="orchEffort"></select>
+          </div>
+          <div class="field">
+            <label for="workerModel">Mission worker</label>
+            <select id="workerModel"></select>
+          </div>
+          <div class="field">
+            <label for="workerEffort">Worker reasoning</label>
+            <select id="workerEffort"></select>
+          </div>
+          <div class="field">
+            <label for="validModel">Validation worker</label>
+            <select id="validModel"></select>
+          </div>
+          <div class="field">
+            <label for="validEffort">Validation reasoning</label>
+            <select id="validEffort"></select>
+          </div>
+        </div>
+        <details>
+          <summary>Merge into an existing settings.json</summary>
+          <p class="help" style="margin:10px 0">Paste your current file so these keys land on top and plugins / trusted folders stay put.</p>
+          <textarea id="existingSettings" placeholder='{"theme":"factory-dark","customModels":[]}'></textarea>
+          <div class="checks">
+            <label><input id="replaceExisting" type="checkbox" /> Replace matching customModels entries</label>
+          </div>
+        </details>
+      </section>
+
+      <section id="file">
+        <h2>settings.json</h2>
+        <p class="hint">Submit builds the file. Copy it into <code>~/.factory/settings.json</code>.</p>
+        <div class="row-actions">
+          <button class="btn" id="submitBtn" type="button">Submit</button>
+          <span class="status" id="submitStatus"></span>
+        </div>
+        <div class="ticket-wrap" id="ticketWrap" hidden style="margin-top:18px">
+          <div class="code">
+            <div class="code-bar">
+              <span>JSON</span>
+              <div class="code-actions">
+                <button class="btn-ghost" id="copyBtn" type="button">Copy</button>
+                <button class="btn-ghost" id="downloadBtn" type="button">Download</button>
+              </div>
+            </div>
+            <pre id="output"></pre>
+          </div>
+          <p class="help" id="ticketMeta" style="margin-top:8px"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const LOCAL_HOST_HINTS = [
+      "localhost", "127.0.0.1", "0.0.0.0", "[::1]",
+      ":11434", ":8000", ":8080", ":5000", ":1234",
+    ];
+    const EFFORTS = ["", "off", "none", "dynamic", "minimal", "low", "medium", "high", "xhigh", "max"];
+
+    const state = {
+      models: [],
+      selected: new Set(),
+      favorites: new Set(),
+      limits: {},
+      tokens: {},
+      noImage: new Set(),
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function provider() {
+      return document.querySelector("input[name=provider]:checked").value;
+    }
+
+    function keyMode() {
+      return document.querySelector("input[name=keyMode]:checked").value;
+    }
+
+    function normalizeBaseUrl(baseUrl) {
+      let normalized = (baseUrl || "").trim().replace(/\/+$/, "");
+      if (!normalized) throw new Error("base URL cannot be empty");
+      if (!/^https?:\/\//i.test(normalized)) {
+        throw new Error("base URL must start with http:// or https://");
+      }
+      const lower = normalized.toLowerCase();
+      const looksLocal = LOCAL_HOST_HINTS.some((hint) => lower.includes(hint));
+      if (looksLocal && !lower.endsWith("/v1")) normalized += "/v1";
+      return normalized;
+    }
+
+    function modelsUrlForBase(baseUrl) {
+      return normalizeBaseUrl(baseUrl) + "/models";
+    }
+
+    function positiveInt(value) {
+      const n = Number(value);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
+    }
+
+    function advertisedMaxOutputTokens(item) {
+      const blobs = [item];
+      for (const key of ["top_provider", "limits", "meta"]) {
+        if (item[key] && typeof item[key] === "object") blobs.push(item[key]);
+      }
+      const fields = [
+        "max_output_tokens",
+        "max_completion_tokens",
+        "maxOutputTokens",
+        "max_output_token",
+        "max_tokens_to_sample",
+      ];
+      for (const blob of blobs) {
+        for (const field of fields) {
+          const n = positiveInt(blob[field]);
+          if (n) return n;
+        }
+      }
+      return null;
+    }
+
+    function parseModelRecords(payload) {
+      let items = [];
+      if (Array.isArray(payload)) items = payload;
+      else if (payload && Array.isArray(payload.data)) items = payload.data;
+      const records = new Map();
+      for (const item of items) {
+        if (!item || typeof item !== "object") continue;
+        const id = String(item.id || "").trim();
+        if (!id || records.has(id)) continue;
+        records.set(id, advertisedMaxOutputTokens(item));
+      }
+      const ids = [...records.keys()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+      const limits = {};
+      for (const id of ids) {
+        const cap = records.get(id);
+        if (cap) limits[id] = cap;
+      }
+      return { ids, limits };
+    }
+
+    function guessProviderNickname(baseUrl) {
+      const cleaned = baseUrl.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0].split(":")[0];
+      const parts = cleaned.split(".").filter((p) => !["api", "www", "com", "ai", "io", "net", "org"].includes(p));
+      const raw = (parts[0] || "Custom").replace(/-/g, " ");
+      return raw.replace(/\b\w/g, (c) => c.toUpperCase());
+    }
+
+    function sanitizeEnvName(name) {
+      let cleaned = name.trim().replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "").toUpperCase();
+      if (!cleaned) cleaned = "CUSTOM_PROVIDER";
+      if (/^\d/.test(cleaned)) cleaned = "PROVIDER_" + cleaned;
+      return cleaned.endsWith("_API_KEY") ? cleaned : cleaned + "_API_KEY";
+    }
+
+    function slugify(name) {
+      return String(name).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 72) || "model";
+    }
+
+    function customId(displayName, used) {
+      let base = "custom:" + slugify(displayName);
+      let id = base;
+      let n = 2;
+      while (used.has(id)) {
+        id = base + "-" + n;
+        n += 1;
+      }
+      used.add(id);
+      return id;
+    }
+
+    function apiKeyRef() {
+      const key = $("apiKey").value.trim();
+      if (keyMode() === "env") {
+        const env = $("envName").value.trim() || sanitizeEnvName($("nickname").value || "CUSTOM");
+        return "${" + env + "}";
+      }
+      return key;
+    }
+
+    function tokenFor(model) {
+      if (state.tokens[model] != null && state.tokens[model] !== "") {
+        return positiveInt(state.tokens[model]);
+      }
+      return positiveInt(state.limits[model]);
+    }
+
+    function selectedModels() {
+      return state.models.filter((m) => state.selected.has(m));
+    }
+
+    function buildEntries() {
+      const models = selectedModels();
+      const baseUrl = normalizeBaseUrl($("baseUrl").value);
+      const key = apiKeyRef();
+      const nick = $("nickname").value.trim();
+      const used = new Set();
+      return models.map((model, index) => {
+        const displayName = nick ? nick + " / " + model : model;
+        const entry = {
+          model,
+          id: customId(displayName, used),
+          index,
+          displayName,
+          baseUrl,
+          provider: provider(),
+        };
+        if (key) entry.apiKey = key;
+        const cap = tokenFor(model);
+        if (cap) entry.maxOutputTokens = cap;
+        if (state.noImage.has(model)) entry.noImageSupport = true;
+        return entry;
+      });
+    }
+
+    function dedupeKey(entry) {
+      const model = String(entry.model || "").trim().toLowerCase();
+      const baseUrl = String(entry.baseUrl || "").trim().replace(/\/+$/, "").toLowerCase();
+      const prov = String(entry.provider || "").trim().toLowerCase();
+      return [prov, baseUrl, model].join("\0");
+    }
+
+    function mergeCustomModels(settings, newEntries, replaceExisting) {
+      const merged = { ...settings };
+      const existing = Array.isArray(merged.customModels) ? merged.customModels.map((item) => (
+        item && typeof item === "object" ? { ...item } : item
+      )) : [];
+      const indexByKey = new Map();
+      existing.forEach((item, idx) => {
+        if (item && typeof item === "object") {
+          const key = dedupeKey(item);
+          if (key.replace(/\0/g, "")) indexByKey.set(key, idx);
+        }
+      });
+      let added = 0;
+      let updated = 0;
+      let skipped = 0;
+      for (const entry of newEntries) {
+        const key = dedupeKey(entry);
+        if (indexByKey.has(key)) {
+          if (replaceExisting) {
+            existing[indexByKey.get(key)] = { ...entry };
+            updated += 1;
+          } else {
+            skipped += 1;
+          }
+          continue;
+        }
+        indexByKey.set(key, existing.length);
+        existing.push({ ...entry });
+        added += 1;
+      }
+      merged.customModels = existing;
+      return { settings: merged, added, updated, skipped };
+    }
+
+    function fillEffort(select, current) {
+      const prev = current ?? select.value;
+      select.innerHTML = "";
+      for (const value of EFFORTS) {
+        const opt = document.createElement("option");
+        opt.value = value;
+        opt.textContent = value || "leave unset";
+        select.appendChild(opt);
+      }
+      if ([...select.options].some((o) => o.value === prev)) select.value = prev;
+    }
+
+    function buildEntriesSafe() {
+      try { return buildEntries(); } catch { return []; }
+    }
+
+    function modelOptions(select) {
+      const prev = select.value;
+      select.innerHTML = "";
+      const blank = document.createElement("option");
+      blank.value = "";
+      blank.textContent = "leave unset";
+      select.appendChild(blank);
+      for (const entry of buildEntriesSafe()) {
+        const opt = document.createElement("option");
+        opt.value = entry.id;
+        opt.textContent = entry.displayName;
+        select.appendChild(opt);
+      }
+      if ([...select.options].some((o) => o.value === prev)) select.value = prev;
+    }
+
+    function renderFavoriteChecks() {
+      const box = $("favoriteChecks");
+      box.innerHTML = "";
+      const entries = buildEntriesSafe();
+      if (!entries.length) {
+        box.innerHTML = '<span class="help">Select models first.</span>';
+        return;
+      }
+      for (const entry of entries) {
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = state.favorites.has(entry.id);
+        input.addEventListener("change", () => {
+          if (input.checked) state.favorites.add(entry.id);
+          else state.favorites.delete(entry.id);
+        });
+        label.append(input, document.createTextNode(" " + entry.displayName));
+        box.appendChild(label);
+      }
+    }
+
+    function refreshExtraSelects() {
+      modelOptions($("defaultModel"));
+      modelOptions($("orchModel"));
+      modelOptions($("workerModel"));
+      modelOptions($("validModel"));
+      renderFavoriteChecks();
+    }
+
+    function setStatus(el, kind, text) {
+      el.dataset.kind = kind || "";
+      el.textContent = text;
+    }
+
+    function toast(text) {
+      const el = $("toast");
+      el.textContent = text;
+      el.dataset.on = "1";
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.dataset.on = "0"; }, 1800);
+    }
+
+    function markStep(index, on) {
+      const links = $("steps").querySelectorAll("a");
+      if (links[index]) links[index].dataset.on = on ? "1" : "";
+    }
+
+    function renderModels() {
+      const host = $("modelList");
+      const filter = $("modelFilter").value.trim().toLowerCase();
+      const visible = state.models.filter((m) => !filter || m.toLowerCase().includes(filter));
+      host.innerHTML = "";
+      if (!state.models.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Fetch first. The list shows up here.";
+        host.appendChild(empty);
+        updateCount();
+        refreshExtraSelects();
+        return;
+      }
+      if (!visible.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No models match that filter.";
+        host.appendChild(empty);
+        updateCount();
+        refreshExtraSelects();
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.innerHTML = "<thead><tr><th></th><th>Model</th><th>maxOutputTokens</th><th>Vision</th></tr></thead>";
+      const body = document.createElement("tbody");
+      for (const model of visible) {
+        const tr = document.createElement("tr");
+
+        const tdCheck = document.createElement("td");
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.checked = state.selected.has(model);
+        check.addEventListener("change", () => {
+          if (check.checked) state.selected.add(model);
+          else state.selected.delete(model);
+          updateCount();
+          refreshExtraSelects();
+        });
+        tdCheck.appendChild(check);
+
+        const tdId = document.createElement("td");
+        tdId.className = "model-id";
+        tdId.textContent = model;
+        tdId.title = model;
+
+        const tdTok = document.createElement("td");
+        tdTok.className = "tokens";
+        const tok = document.createElement("input");
+        tok.type = "number";
+        tok.min = "1";
+        tok.placeholder = state.limits[model] ? String(state.limits[model]) : "required";
+        tok.value = state.tokens[model] != null ? state.tokens[model] : (state.limits[model] || "");
+        tok.addEventListener("input", () => {
+          state.tokens[model] = tok.value;
+        });
+        tdTok.appendChild(tok);
+
+        const tdVis = document.createElement("td");
+        tdVis.className = "vision";
+        const visLabel = document.createElement("label");
+        const vis = document.createElement("input");
+        vis.type = "checkbox";
+        vis.checked = state.noImage.has(model);
+        vis.addEventListener("change", () => {
+          if (vis.checked) state.noImage.add(model);
+          else state.noImage.delete(model);
+        });
+        visLabel.append(vis, document.createTextNode(" noImageSupport"));
+        tdVis.appendChild(visLabel);
+
+        tr.append(tdCheck, tdId, tdTok, tdVis);
+        body.appendChild(tr);
+      }
+      table.appendChild(body);
+      host.appendChild(table);
+      updateCount();
+      refreshExtraSelects();
+    }
+
+    function updateCount() {
+      $("modelCount").textContent = state.selected.size + " selected";
+      markStep(1, state.selected.size || state.models.length);
+    }
+
+    function addModels(ids) {
+      const incoming = ids.map((id) => String(id).trim()).filter(Boolean);
+      const have = new Set(state.models);
+      for (const id of incoming) {
+        if (!have.has(id)) {
+          state.models.push(id);
+          have.add(id);
+        }
+        if (state.tokens[id] == null && state.limits[id]) {
+          state.tokens[id] = String(state.limits[id]);
+        }
+      }
+      state.models.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+      renderModels();
+      markStep(1, true);
+    }
+
+    async function fetchViaProxy(baseUrl, apiKey, prov) {
+      const res = await fetch("/api/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl, apiKey, provider: prov }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || res.statusText || "proxy failed");
+      if (!Array.isArray(data.models)) throw new Error("proxy returned no models");
+      return { ids: data.models, limits: data.limits || {} };
+    }
+
+    async function fetchDirect(baseUrl, apiKey, prov) {
+      const headers = { Accept: "application/json" };
+      if (apiKey) {
+        if (prov === "anthropic") {
+          headers["x-api-key"] = apiKey;
+          headers["anthropic-version"] = "2023-06-01";
+        } else {
+          headers.Authorization = "Bearer " + apiKey;
+        }
+      }
+      const res = await fetch(modelsUrlForBase(baseUrl), { headers });
+      if (!res.ok) throw new Error(res.status + " " + res.statusText);
+      return parseModelRecords(await res.json());
+    }
+
+    async function onFetch() {
+      const btn = $("fetchBtn");
+      btn.disabled = true;
+      setStatus($("fetchStatus"), "", "Fetching /models…");
+      try {
+        const baseUrl = normalizeBaseUrl($("baseUrl").value);
+        if (!$("nickname").value.trim()) $("nickname").value = guessProviderNickname(baseUrl);
+        if (keyMode() === "env" && !$("envName").value.trim()) {
+          $("envName").value = sanitizeEnvName($("nickname").value);
+        }
+        const apiKey = $("apiKey").value.trim();
+        const prov = provider();
+        let records;
+        const localHost = location.hostname === "127.0.0.1" || location.hostname === "localhost";
+        try {
+          if (localHost) {
+            try { records = await fetchViaProxy(baseUrl, apiKey, prov); }
+            catch { records = await fetchDirect(baseUrl, apiKey, prov); }
+          } else {
+            records = await fetchDirect(baseUrl, apiKey, prov);
+          }
+        } catch (directErr) {
+          throw new Error(
+            (directErr && directErr.message ? directErr.message : "fetch failed")
+            + " — if this is CORS, paste the /models JSON below."
+          );
+        }
+        state.models = [];
+        state.selected = new Set();
+        state.limits = records.limits || {};
+        state.tokens = {};
+        state.noImage = new Set();
+        addModels(records.ids);
+        setStatus($("fetchStatus"), "ok", records.ids.length + " models from " + modelsUrlForBase(baseUrl));
+        $("models").scrollIntoView({ block: "start" });
+      } catch (err) {
+        setStatus($("fetchStatus"), "bad", err.message || String(err));
+        $("pasteDetails").open = true;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function extraFavoriteIds() {
+      return $("extraFavorites").value.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+
+    function buildSettings() {
+      const missing = selectedModels().filter((m) => !tokenFor(m));
+      if (missing.length) {
+        throw new Error("Set maxOutputTokens on every selected model. Missing: " + missing.slice(0, 4).join(", ") + (missing.length > 4 ? "…" : ""));
+      }
+      const entries = buildEntries();
+      if (!entries.length) throw new Error("Select at least one model.");
+      let base = {};
+      const raw = $("existingSettings").value.trim();
+      if (raw) {
+        try { base = JSON.parse(raw); }
+        catch { throw new Error("Existing settings.json is not valid JSON."); }
+        if (!base || typeof base !== "object" || Array.isArray(base)) {
+          throw new Error("Existing settings.json must be an object.");
+        }
+      }
+      const merged = mergeCustomModels(base, entries, $("replaceExisting").checked);
+      const settings = merged.settings;
+
+      const theme = $("theme").value.trim();
+      if (theme) settings.theme = theme;
+
+      const def = $("defaultModel").value;
+      const defEffort = $("defaultEffort").value;
+      if (def) {
+        settings.model = def;
+        settings.sessionDefaultSettings = { ...(settings.sessionDefaultSettings || {}), model: def };
+        if (defEffort) settings.sessionDefaultSettings.reasoningEffort = defEffort;
+      } else if (defEffort) {
+        settings.sessionDefaultSettings = { ...(settings.sessionDefaultSettings || {}), reasoningEffort: defEffort };
+      }
+
+      const seen = new Set();
+      const favs = [...state.favorites, ...extraFavoriteIds()].filter((id) => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+      if (favs.length) settings.modelFavorites = favs;
+
+      const orch = $("orchModel").value;
+      const orchEffort = $("orchEffort").value;
+      const worker = $("workerModel").value;
+      const workerEffort = $("workerEffort").value;
+      const valid = $("validModel").value;
+      const validEffort = $("validEffort").value;
+      if (orch) settings.missionOrchestratorModel = orch;
+      if (orchEffort) settings.missionOrchestratorReasoningEffort = orchEffort;
+      if (worker || workerEffort || valid || validEffort) {
+        settings.missionModelSettings = { ...(settings.missionModelSettings || {}) };
+        if (worker) settings.missionModelSettings.workerModel = worker;
+        if (workerEffort) settings.missionModelSettings.workerReasoningEffort = workerEffort;
+        if (valid) settings.missionModelSettings.validationWorkerModel = valid;
+        if (validEffort) settings.missionModelSettings.validationWorkerReasoningEffort = validEffort;
+      }
+      return { settings, stats: merged };
+    }
+
+    function onSubmit() {
+      try {
+        const { settings, stats } = buildSettings();
+        $("output").textContent = JSON.stringify(settings, null, 2) + "\n";
+        $("ticketMeta").textContent =
+          stats.added + " added, " + stats.updated + " updated, " + stats.skipped + " skipped · paste into ~/.factory/settings.json";
+        $("ticketWrap").hidden = false;
+        markStep(2, true);
+        markStep(3, true);
+        setStatus($("submitStatus"), "ok", "Built.");
+        $("ticketWrap").scrollIntoView({ block: "start" });
+      } catch (err) {
+        setStatus($("submitStatus"), "bad", err.message || String(err));
+      }
+    }
+
+    function currentJson() { return $("output").textContent || ""; }
+
+    async function onCopy() {
+      const text = currentJson();
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        toast("Copied settings.json");
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents($("output"));
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        toast("Select and copy the JSON");
+      }
+    }
+
+    function onDownload() {
+      const text = currentJson();
+      if (!text) return;
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "settings.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    $("fetchBtn").addEventListener("click", onFetch);
+    $("importPasteBtn").addEventListener("click", () => {
+      try {
+        const raw = $("pasteModels").value.trim();
+        if (!raw) throw new Error("Nothing pasted.");
+        const records = parseModelRecords(JSON.parse(raw));
+        if (!records.ids.length) throw new Error("No model ids in that JSON.");
+        Object.assign(state.limits, records.limits);
+        addModels(records.ids);
+        setStatus($("fetchStatus"), "ok", "Imported " + records.ids.length + " models from paste.");
+      } catch (err) {
+        setStatus($("fetchStatus"), "bad", err.message || String(err));
+      }
+    });
+    $("modelFilter").addEventListener("input", renderModels);
+    $("selectAllBtn").addEventListener("click", () => {
+      state.models.forEach((m) => state.selected.add(m));
+      renderModels();
+    });
+    $("selectNoneBtn").addEventListener("click", () => {
+      state.selected.clear();
+      renderModels();
+    });
+    $("applyTokensBtn").addEventListener("click", () => {
+      const n = positiveInt($("bulkTokens").value);
+      if (!n) {
+        setStatus($("fetchStatus"), "bad", "Enter a token count to apply.");
+        return;
+      }
+      const targets = state.selected.size ? [...state.selected] : state.models;
+      for (const id of targets) state.tokens[id] = String(n);
+      renderModels();
+    });
+    $("markNoImageBtn").addEventListener("click", () => {
+      const targets = state.selected.size ? [...state.selected] : [];
+      targets.forEach((id) => state.noImage.add(id));
+      renderModels();
+    });
+    $("clearNoImageBtn").addEventListener("click", () => {
+      const targets = state.selected.size ? [...state.selected] : [];
+      targets.forEach((id) => state.noImage.delete(id));
+      renderModels();
+    });
+    $("addManualBtn").addEventListener("click", () => {
+      const id = $("manualModel").value.trim();
+      if (!id) return;
+      addModels([id]);
+      state.selected.add(id);
+      $("manualModel").value = "";
+      renderModels();
+    });
+    $("manualModel").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        $("addManualBtn").click();
+      }
+    });
+    $("submitBtn").addEventListener("click", onSubmit);
+    $("copyBtn").addEventListener("click", onCopy);
+    $("downloadBtn").addEventListener("click", onDownload);
+    $("baseUrl").addEventListener("blur", () => {
+      if ($("baseUrl").value.trim() && !$("nickname").value.trim()) {
+        try { $("nickname").value = guessProviderNickname($("baseUrl").value); } catch {}
+      }
+    });
+    document.querySelectorAll("input[name=keyMode]").forEach((el) => {
+      el.addEventListener("change", () => { $("envField").hidden = keyMode() !== "env"; });
+    });
+    $("theme").addEventListener("input", () => markStep(2, !!$("theme").value.trim()));
+
+    fillEffort($("defaultEffort"));
+    fillEffort($("orchEffort"));
+    fillEffort($("workerEffort"));
+    fillEffort($("validEffort"));
+    refreshExtraSelects();
+  </script>
+</body>
+</html>
