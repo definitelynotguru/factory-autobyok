@@ -94,6 +94,7 @@
       padding: 0 28px;
       background: var(--bg);
       border-bottom: 1px solid var(--line);
+      transition: transform 200ms var(--ease-out);
     }
 
     .brand {
@@ -153,8 +154,27 @@
     }
 
     .rail {
-      padding: 28px 18px 48px 0;
+      position: sticky;
+      top: 72px;
+      align-self: start;
+      max-height: calc(100dvh - 88px);
+      overflow: auto;
+      padding: 16px 18px 24px 0;
       border-right: 1px solid var(--line);
+      background: var(--bg);
+      transition: transform 200ms var(--ease-out);
+    }
+
+    html[data-compact] .topbar,
+    html[data-compact] .rail {
+      transform: translateY(-56px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html[data-compact] .topbar,
+      html[data-compact] .rail {
+        transform: none;
+      }
     }
 
     .rail ol {
@@ -1458,6 +1478,20 @@
     fillEffort($("workerEffort"));
     fillEffort($("validEffort"));
     refreshExtraSelects();
+
+    (function pinChrome() {
+      let lastY = window.scrollY;
+      let compact = false;
+      const apply = () => {
+        const y = window.scrollY;
+        if (y < 80) compact = false;
+        else if (y > lastY + 6) compact = true;
+        else if (y < lastY - 6) compact = false;
+        lastY = y;
+        document.documentElement.toggleAttribute("data-compact", compact);
+      };
+      window.addEventListener("scroll", apply, { passive: true });
+    })();
   </script>
 </body>
 </html>
